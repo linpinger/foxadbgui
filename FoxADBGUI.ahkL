@@ -1,5 +1,5 @@
 #SingleInstance, off
-verDate := "2014-4-21"
+verDate := "2014-5-4"
 
 bDebug := 1  ; // 是否自用版本
 
@@ -30,7 +30,7 @@ bOutUTF8 := false
 	Gui,Add,ComboBox,x544 y30 w100 vLocDir Choose1, %LocList%
 
 	Gui, Font, S12
-	Gui,Add,ListView,x24 y60 w710 h330 gLVClick vFoxLV, Name|Size|Time
+	Gui,Add,ListView,x24 y60 w710 h330 -ReadOnly AltSubmit gLVClick vFoxLV, Name|Size|Time
 	Gui, Font
 	LV_ModifyCol(1, 460) , LV_ModifyCol(2, 80) , LV_ModifyCol(3, 145)
 		LV_Add("", "..", "D", "")
@@ -51,6 +51,7 @@ return
 menuinit: ; 初始化菜单
 	Menu, LVMenu, Add, 下载到本地(&F), FoxMenuAct
 	Menu, LVMenu, Add
+	Menu, LVMenu, Add, 移动(&M), FoxMenuAct
 	Menu, LVMenu, Add, 新建文件夹(&N), FoxMenuAct
 	Menu, LVMenu, Add
 	Menu, LVMenu, Add, 删除(&D), FoxMenuAct
@@ -59,6 +60,13 @@ return
 FoxMenuAct: ; 相应菜单
 	guicontrolget, DevDir
 	LV_GetText(nowName, MenuRowNum, 1)
+	If ( A_ThisMenuItem = "移动(&M)" ) {
+		oldPath := DevDir . nowName
+		inputbox, newPath, 移动／重命名,输入要移动的目标路径,,300, 150, , , , , %oldPath%
+		if ( (oldPath = newPath) or newPath = "")
+				return
+		runwait, adb shell mv "%oldPath%" "%newPath%"
+	}
 	If ( A_ThisMenuItem = "新建文件夹(&N)" ) {
 		inputbox, newDirName, 新建文件夹,输入要新建的文件夹名称,,300, 150
 		if ( newDirName = "" )
@@ -114,6 +122,16 @@ return
 
 LVClick: ; 双击条目
 	nItem := A_EventInfo
+	if ( A_GuiEvent == "E" ) { ; F2前
+		LV_GetText(nEditBefore, nItem, 1)
+	}
+	if ( A_GuiEvent == "e" ) { ; F2后
+		LV_GetText(nEditAfter, nItem, 1)
+		if ( (nEditBefore = nEditAfter) or nEditAfter = "")
+				return
+		guicontrolget, DevDir
+		runwait, adb shell mv "%DevDir%%nEditBefore%" "%DevDir%%nEditAfter%"
+	}
 	if ( A_GuiEvent = "DoubleClick" ) {
 		LV_GetText(nowName, nItem, 1)
 		LV_GetText(nowSize, nItem, 2)
