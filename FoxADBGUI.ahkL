@@ -1,5 +1,5 @@
 #SingleInstance, off
-verDate := "2014-5-4"
+verDate := "2014-7-7"
 
 bDebug := 1  ; // 是否自用版本
 
@@ -36,6 +36,8 @@ bOutUTF8 := false
 		LV_Add("", "..", "D", "")
 
 	Gui,Show,w751 h410 , ADB push pull by 爱尔兰之狐 http://linpinger.github.io  Ver: %verDate%
+
+	onmessage(0x100, "FoxInput")  ; 在特殊控件按下特殊按键的反应
 
 	process, Exist, adb.exe
 	if ( ErrorLevel = 0 ) {
@@ -104,8 +106,8 @@ FoxMenuAct: ; 相应菜单
 			return
 		LV_GetText(nowSize, MenuRowNum, 2)
 		if ( nowSize = "D" ) {
-			msgbox, 257, 确认, 确认删除目录
-			ifmsgbox, OK
+			msgbox, 260, 确认, 是否删除目录:`n`n%nowName%
+			ifmsgbox, Yes
 				runwait, adb shell rm -r "%DevDir%%nowName%"
 			else
 				return
@@ -133,17 +135,17 @@ LVClick: ; 双击条目
 		runwait, adb shell mv "%DevDir%%nEditBefore%" "%DevDir%%nEditAfter%"
 	}
 	if ( A_GuiEvent = "DoubleClick" ) {
+		gosub, DClickItem
+	}
+return
+
+DClickItem: ; 需要nItem
 		LV_GetText(nowName, nItem, 1)
 		LV_GetText(nowSize, nItem, 2)
 		guicontrolget, DevDir
 		if ( nowSize = "D" ) { ; 目录
 			if ( nowName = ".." ) { ; 上级目录
-				xx_1 := ""
-				regexmatch(DevDir, "i)^([/]?.*/).+/$", xx_)
-				if ( xx_1 != "" ) {
-					guicontrol, Text, DevDir, %xx_1%
-					lsDir(xx_1, bOutUTF8)
-				}
+				gosub, goUP
 			} else { ; 下级目录
 				subDir := DevDir . nowName . "/"
 				guicontrol, Text, DevDir, %subDir%
@@ -176,12 +178,22 @@ LVClick: ; 双击条目
 				clipboard = %remoteFilePath%
 			}
 		}
+return
+
+goUP: ; 需要DevDir
+	guicontrolget, DevDir
+	xx_1 := ""
+	regexmatch(DevDir, "i)^([/]?.*/).+/$", xx_)
+	if ( xx_1 != "" ) {
+		guicontrol, Text, DevDir, %xx_1%
+		lsDir(xx_1, bOutUTF8)
 	}
 return
 
 ShowDir: ; 显示目录内容
 	guicontrolget, DevDir
 	lsDir(DevDir, bOutUTF8)
+	Guicontrol, focus, FoxLV
 return
 
 
@@ -218,10 +230,30 @@ GuiClose:
 return
 
 
+#IfWinActive, ahk_class AutoHotkeyGUI
 ^esc::reload
 +esc::Edit
 !esc::ExitApp
+!UP::gosub, goUP
+^\::
+^0::
+	guicontrol, Text, DevDir, /sdcard/
+	lsDir("/sdcard/", bOutUTF8)
+return
+^1::
+	guicontrol, Text, DevDir, /sdcard/99_sync/
+	lsDir("/sdcard/99_sync/", bOutUTF8)
+return
+!1::CopyInfo2Clip(1)
+!2::CopyInfo2Clip(2)
+!3::CopyInfo2Clip(3)
+#IfWinActive
 
+CopyInfo2Clip(Num=1) {
+	LV_GetText(NowVar, LV_GetNext(0), Num)
+	Clipboard = %NowVar%
+	TrayTip, 剪贴板:, %NowVar%
+}
 
 lsDir(DevDir="/sdcard/", bUTF8=false)
 {
@@ -268,3 +300,11 @@ lsDir(DevDir="/sdcard/", bUTF8=false)
 	}
 }
 
+FoxInput(wParam, lParam, msg, hwnd)  ; 在特殊控件按下特殊按键的反应
+{ ;	tooltip, <%wParam%>`n<%lParam%>`n<%msg%>`n<%hwnd%>`n%A_GuiControl%
+	Global
+	If ( A_GuiControl = "FoxLV" and wParam = 13 ) {
+		nItem := LV_GetNext()
+		gosub, DClickItem
+	}
+}
