@@ -18,7 +18,7 @@
 
 **Exe打包下载:**
 
- - [FoxADBGUI.exe](../../releases/download/FoxADBGUI/FoxADBGUI.exe)
+ - [FoxADBGUI.exe](http://linpinger.qiniudn.com/FoxADBGUI.exe)
  - <http://pan.baidu.com/s/1bnqxdjL>
 
 **源码:**
